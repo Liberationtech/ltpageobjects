@@ -1,5 +1,10 @@
 from distutils.core import setup
 
+# Requirements
+install_requires = [
+    'selenium',
+]
+
 setup(name='ltpageobjects',
       version='0.1',
       description='Liberationtech Page Objects',
