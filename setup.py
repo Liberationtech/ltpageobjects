@@ -10,6 +10,7 @@ setup(name='ltpageobjects',
       description='Liberationtech Page Objects',
       author='Oivvio Polite',
       author_email='oivvio@liberationtech.net',
-      url='http://www.python.org/sigs/distutils-sig/',
+      url='https://github.com/Liberationtech/ltpageobjects',
+      install_requires=install_requires,
       packages=['ltpageobjects'],
      )
