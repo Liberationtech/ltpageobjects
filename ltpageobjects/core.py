@@ -76,6 +76,9 @@ class PageObject:
         """
         testcase.assertTrue(element() != None)
 
+    def page_source(self):
+        return self.driver.page_source
+
 class SiteObject:
     pages = []
     def newpage(self, oldpage):
