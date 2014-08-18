@@ -63,11 +63,21 @@ class PageObject:
 
     def click(self, link):
         """
-        link is a bound callble that returns an element
+        link is a bound callable that returns an element
         click a link and return a new page object
         """
         link().click()
         return self.site.newpage(self)
+
+    def click_outbound(self, link, site):
+        """
+        link is a bound callable that returns an element
+
+        click a link that points to a different site and return a new page object
+        """
+        link().click()
+        return site.newpage()
+
 
     def assert_element_exists(self, testcase, element):
         """
@@ -88,13 +98,19 @@ class SiteObject:
         we're at now. Return a new page object instantiated with that class
         """
 
-        for page in self.__class__.pages:
-            newpage = page(oldpage.driver, self)
+        #Loop through pages in site
+        for page_class in self.__class__.pages:
+
+            #Construct a new page for each page class
+            newpage = page_class(oldpage.driver, self)
+
+            #If the url of this new page corresponds to the url
+            #of the driver of the old page return the new page object
+            #this will be the case when we have clicked a link on the old page pointing
+            #to the url of the new page
             if newpage.full_url() == oldpage.driver.current_url:
                 return newpage
 
         #if we get here our tests are broken
         #TODO make a custom exception here and raise it
         assert False
-
-
