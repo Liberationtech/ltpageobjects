@@ -8,24 +8,28 @@ from mock import PropertyMock
 
 
 class TestPageObject(ltpageobjects.PageObject):
-    """
-    Inherit from PageObject
-    """
     base_url = "http://127.0.0.1"
     url = "/hello"
 
 class TestAnotherPageObject(ltpageobjects.PageObject):
-    """
-
-    """
     base_url = "http://127.0.0.1"
     url = "/world"
 
 class TestSiteObject(ltpageobjects.SiteObject):
-    """
-    Inherit from SiteObject
-    """
     pages = [TestPageObject, TestAnotherPageObject]
+
+
+class TestPageObjectAtOtherSite(ltpageobjects.PageObject):
+    base_url = "http://example.com"
+    url = "/foo"
+
+class TestAnotherPageObjectAtOtherSite(ltpageobjects.PageObject):
+    base_url = "http://example.com"
+    url = "/bar"
+
+class TestOtherSiteObject(ltpageobjects.SiteObject):
+    pages = [TestPageObjectAtOtherSite, TestAnotherPageObjectAtOtherSite]
+
 
 
 class CreateSiteTest(unittest.TestCase):
@@ -76,5 +80,31 @@ class ClickTest(unittest.TestCase):
         newpage = page_hello.click(Mock())
         self.assertEqual(page_world.full_url(), newpage.full_url())
 
+
+class MultiSiteClickTest(unittest.TestCase):
+
+    def setUp(self):
+        self.first_site = TestSiteObject()
+        self.second_site = TestOtherSiteObject()
+
+
+        self.mockdriver = Mock()
+        type(self.mockdriver).current_url = PropertyMock(return_value="http://example.com/foo")
+
+
+    def test_click_outbound(self):
+        """
+        When we click the outbound link we get back a page that is part of the other site
+        """
+
+        page_first_site = TestPageObject(self.mockdriver, self.first_site)
+        page_other_site = TestPageObjectAtOtherSite(self.mockdriver, self.second_site)
+
+        assert False
+
+#alltest = unittest.TestSuite()
+#alltest.addTests([CreateSiteTest, CreatePageTest, ClickTest, MultiSiteClickTest])
+
 if __name__ == '__main__':
+    #print sys.argv[1]
     unittest.main()
