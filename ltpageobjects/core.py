@@ -1,6 +1,16 @@
 from selenium.webdriver.support import expected_conditions as EC  # available since 2.26.0
 from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
 
+def strip_trailing_slash(url):
+    """
+    Return given url without any trailing slashes
+
+    """
+    if url[-1] == "/":
+        return url[:-1]
+    else:
+        return url
+
 class PageObject:
     base_url = None
     url = None
@@ -15,7 +25,7 @@ class PageObject:
         if not self.__class__.url:
             raise Exception
 
-        self.url = self.__class__.base_url + self.__class__.url
+        #self.url = self.__class__.base_url + self.__class__.url
 
     def get(self):
         self.driver.get(self.url)
@@ -108,7 +118,7 @@ class SiteObject:
             #of the driver of the old page return the new page object
             #this will be the case when we have clicked a link on the old page pointing
             #to the url of the new page
-            if newpage.full_url() == oldpage.driver.current_url:
+            if strip_trailing_slash(newpage.full_url()) == strip_trailing_slash(oldpage.driver.current_url):
                 return newpage
 
         #if we get here our tests are broken

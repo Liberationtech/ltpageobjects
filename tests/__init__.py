@@ -65,11 +65,16 @@ class ClickTest(unittest.TestCase):
         type(self.mockdriver).current_url = PropertyMock(return_value="http://127.0.0.1/world")
 
     def test_click(self):
+        """
+        When we click the link we get to the other page
+        """
+
         site = TestSiteObject()
         page_hello = TestPageObject(self.mockdriver, self.site)
         page_world = TestAnotherPageObject(self.mockdriver, self.site)
 
-        page_hello.click(Mock())
+        newpage = page_hello.click(Mock())
+        self.assertEqual(page_world.full_url(), newpage.full_url())
 
 if __name__ == '__main__':
     unittest.main()
