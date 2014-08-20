@@ -1,9 +1,6 @@
 import unittest
-import sys
 import ltpageobjects
-from mock import MagicMock
 from mock import Mock
-from mock import patch
 from mock import PropertyMock
 
 
@@ -50,8 +47,6 @@ class CreatePageTest(unittest.TestCase):
         self.mockdriver = Mock(return_value='an_element')
         current_url = PropertyMock(return_value="http://127.0.0.1/world")
         type(self.mockdriver).current_url = current_url
-        #self.mockdriver.current_url = "http://127.0.0.1/world"
-        print self.mockdriver.current_url
 
     def test_create_page(self):
         page = TestPageObject(self.mockdriver, self.site)
@@ -60,7 +55,6 @@ class CreatePageTest(unittest.TestCase):
     def test_find_element(self):
         page = TestPageObject(self.mockdriver, self.site)
         value = page.find_element_by_id("hello")
-        print self.mockdriver.method_calls
 
 class ClickTest(unittest.TestCase):
     def setUp(self):
@@ -73,7 +67,6 @@ class ClickTest(unittest.TestCase):
         When we click the link we get to the other page
         """
 
-        site = TestSiteObject()
         page_hello = TestPageObject(self.mockdriver, self.site)
         page_world = TestAnotherPageObject(self.mockdriver, self.site)
 
@@ -86,11 +79,8 @@ class MultiSiteClickTest(unittest.TestCase):
     def setUp(self):
         self.first_site = TestSiteObject()
         self.second_site = TestOtherSiteObject()
-
-
         self.mockdriver = Mock()
         type(self.mockdriver).current_url = PropertyMock(return_value="http://example.com/foo")
-
 
     def test_click_outbound(self):
         """
@@ -100,11 +90,11 @@ class MultiSiteClickTest(unittest.TestCase):
         page_first_site = TestPageObject(self.mockdriver, self.first_site)
         page_other_site = TestPageObjectAtOtherSite(self.mockdriver, self.second_site)
 
-        assert False
+        newpage = page_first_site.click_outbound(Mock(), self.second_site)
 
-#alltest = unittest.TestSuite()
-#alltest.addTests([CreateSiteTest, CreatePageTest, ClickTest, MultiSiteClickTest])
+        self.assertEqual(newpage.site, self.second_site)
+        self.assertEqual(newpage.full_url(), page_other_site.full_url())
+
 
 if __name__ == '__main__':
-    #print sys.argv[1]
     unittest.main()

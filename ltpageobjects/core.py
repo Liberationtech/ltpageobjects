@@ -86,7 +86,7 @@ class PageObject:
         click a link that points to a different site and return a new page object
         """
         link().click()
-        return site.newpage()
+        return site.newpage(self)
 
 
     def assert_element_exists(self, testcase, element):
