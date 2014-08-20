@@ -1,34 +1,45 @@
 from selenium.webdriver.support import expected_conditions as EC  # available since 2.26.0
 from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
 
+class PageNotFoundException(Exception):
+    pass
+
+class MissingBaseUrlException(Exception):
+    pass
+
+class MissingUrlException(Exception):
+    pass
+
 def strip_trailing_slash(url):
     """
     Return given url without any trailing slashes
-
     """
     if url[-1] == "/":
         return url[:-1]
     else:
         return url
 
+
 class PageObject:
     base_url = None
     url = None
+    url_pattern = None
 
     def __init__(self, driver, site):
         self.driver = driver
         self.site = site
 
         if not self.__class__.base_url:
-            raise Exception
+            raise MissingBaseUrlException({"message":"You must supply a base_url class attribute when inheriting from PageObject"})
 
         if not self.__class__.url:
-            raise Exception
-
-        #self.url = self.__class__.base_url + self.__class__.url
+            raise MissingUrlException({"message":"You must supply a url class attribute when inheriting from PageObject"})
 
     def get(self):
-        self.driver.get(self.url)
+        print "self.url: {}".format(self.url)
+        print "self.full_url: {}".format(self.full_url())
+        #self.driver.get(self.url)
+        self.driver.get(self.full_url())
 
     def wait(self, locator, timeout=10000):
         WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
@@ -71,22 +82,26 @@ class PageObject:
             element.clear()
         element.send_keys(value)
 
-    def click(self, link):
+    def click(self, link, url_pattern=None):
         """
         link is a bound callable that returns an element
         click a link and return a new page object
+
+        if url_pattern is None, we require strict url matching
+        if url_pattern is set to a regexp string we require a match of that
         """
         link().click()
         return self.site.newpage(self)
 
-    def click_outbound(self, link, site):
+    def click_outbound(self, link, site, url_pattern=None):
         """
         link is a bound callable that returns an element
 
         click a link that points to a different site and return a new page object
         """
         link().click()
-        return site.newpage(self)
+        return site.newpage()
+
 
 
     def assert_element_exists(self, testcase, element):
@@ -108,8 +123,11 @@ class SiteObject:
         we're at now. Return a new page object instantiated with that class
         """
 
+        url_of_page_we_just_navigated_to = oldpage.driver.current_url
+        site_class = self.__class__
+
         #Loop through pages in site
-        for page_class in self.__class__.pages:
+        for page_class in site_class.pages:
 
             #Construct a new page for each page class
             newpage = page_class(oldpage.driver, self)
@@ -118,9 +136,13 @@ class SiteObject:
             #of the driver of the old page return the new page object
             #this will be the case when we have clicked a link on the old page pointing
             #to the url of the new page
-            if strip_trailing_slash(newpage.full_url()) == strip_trailing_slash(oldpage.driver.current_url):
+            if strip_trailing_slash(newpage.full_url()) == strip_trailing_slash(url_of_page_we_just_navigated_to):
                 return newpage
+
+        #Loop through the pages in the site again, this time looking for pattern matches
+
 
         #if we get here our tests are broken
         #TODO make a custom exception here and raise it
-        assert False
+
+        raise PageNotFoundException({"message" : "The requested page [{0}]".format(newpage.full_url())})
