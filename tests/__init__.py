@@ -2,6 +2,10 @@ import unittest
 import ltpageobjects
 from mock import Mock
 from mock import PropertyMock
+import unittest
+import ltpageobjects
+from mock import Mock
+from mock import PropertyMock
 
 
 class TestPageObject(ltpageobjects.PageObject):
@@ -12,8 +16,13 @@ class TestAnotherPageObject(ltpageobjects.PageObject):
     base_url = "http://127.0.0.1"
     url = "/world"
 
+
+class URLPatternPageObject(ltpageobjects.PageObject):
+    base_url = "http://127.0.0.1"
+    url_pattern = "/path/(?P<some_id>\d\d)"
+
 class TestSiteObject(ltpageobjects.SiteObject):
-    pages = [TestPageObject, TestAnotherPageObject]
+    pages = [TestPageObject, TestAnotherPageObject, URLPatternPageObject]
 
 
 class TestPageObjectAtOtherSite(ltpageobjects.PageObject):
@@ -24,9 +33,9 @@ class TestAnotherPageObjectAtOtherSite(ltpageobjects.PageObject):
     base_url = "http://example.com"
     url = "/bar"
 
+
 class TestOtherSiteObject(ltpageobjects.SiteObject):
     pages = [TestPageObjectAtOtherSite, TestAnotherPageObjectAtOtherSite]
-
 
 
 class CreateSiteTest(unittest.TestCase):
@@ -70,8 +79,27 @@ class ClickTest(unittest.TestCase):
         page_hello = TestPageObject(self.mockdriver, self.site)
         page_world = TestAnotherPageObject(self.mockdriver, self.site)
 
-        newpage = page_hello.click(Mock())
-        self.assertEqual(page_world.full_url(), newpage.full_url())
+        some_link = Mock()
+        newpage = page_hello.click(some_link)
+        self.assertEqual(page_world.full_url, newpage.full_url)
+
+class ClickRegexpTest(unittest.TestCase):
+    def setUp(self):
+        self.site = TestSiteObject()
+        self.mockdriver = Mock()
+        type(self.mockdriver).current_url = PropertyMock(return_value="http://127.0.0.1/path/10")
+
+    def test_click(self):
+        """
+        When we click the link we get to the other page
+        """
+
+        page_hello = TestPageObject(self.mockdriver, self.site)
+        page_world = TestAnotherPageObject(self.mockdriver, self.site)
+
+        some_link = Mock()
+        newpage = page_hello.click(some_link)
+        print newpage.full_url
 
 
 class MultiSiteClickTest(unittest.TestCase):
@@ -90,10 +118,11 @@ class MultiSiteClickTest(unittest.TestCase):
         page_first_site = TestPageObject(self.mockdriver, self.first_site)
         page_other_site = TestPageObjectAtOtherSite(self.mockdriver, self.second_site)
 
-        newpage = page_first_site.click_outbound(Mock(), self.second_site)
+        outbound_link = Mock()
+        newpage = page_first_site.click_outbound(outbound_link, self.second_site)
 
         self.assertEqual(newpage.site, self.second_site)
-        self.assertEqual(newpage.full_url(), page_other_site.full_url())
+        self.assertEqual(newpage.full_url, page_other_site.full_url)
 
 
 if __name__ == '__main__':
