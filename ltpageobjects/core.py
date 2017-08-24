@@ -1,9 +1,11 @@
-from selenium.webdriver.support import expected_conditions as EC  # available since 2.26.0
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
+# available since 2.26.0
+from selenium.webdriver.support import expected_conditions as EC
+# available since 2.4.0
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 import re
 
-#TODO Move to incorporating urls.py from current project
+# TODO Move to incorporating urls.py from current project
 # pick up url NAMES and also use the pattern matching from there
 # on top of that allow users to define new sites using the same mechanism
 
@@ -11,11 +13,14 @@ import re
 class PageNotFoundException(Exception):
     pass
 
+
 class MissingBaseUrlException(Exception):
     pass
 
+
 class MissingUrlException(Exception):
     pass
+
 
 def strip_trailing_slash(url):
     """
@@ -28,32 +33,33 @@ def strip_trailing_slash(url):
 
 
 class PageObject:
-    base_url = None
     url = None
     url_pattern = None
 
-    def __init__(self, driver, site):
+    def __init__(self, driver, site, base_url=None):
         self.driver = driver
         self.site = site
 
+        # If we have not set the base_url class attribute, then use
+        # value passed in to the constructor
 
-        if self.__class__.base_url and self.__class__.url:
-            self.full_url = self.__class__.base_url + self.__class__.url
-        #if not self.__class__.base_url:
-        #    raise MissingBaseUrlException({"message":"You must supply a base_url class attribute when inheriting from PageObject"})
+        if not hasattr(self.__class__, "base_url"):
+            self.__class__.base_url = base_url
 
-        #if not self.__class__.url:
-        #    raise MissingUrlException({"message":"You must supply a url class attribute when inheriting from PageObject"})
+    def __getattr__(self, name):
+        if name == "full_url":
+            full_url = self.__class__.base_url + self.__class__.url
+            return full_url
 
     def get(self):
         print "self.url: {}".format(self.url)
         print "self.full_url: {}".format(self.full_url)
-        #self.driver.get(self.url)
+        # self.driver.get(self.url)
         self.driver.get(self.full_url)
 
     def wait(self, locator, timeout=10000):
-        WebDriverWait(self.driver, timeout).until(EC.presence_of_element_located(locator))
-
+        WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located(locator))
 
     def dump_source(self, filename):
         """ put the source of the page on file """
@@ -61,8 +67,7 @@ class PageObject:
         fh.write(self.driver.page_source.encode("UTF-8"))
         fh.close()
 
-
-    def find_element_by_link(self,link):
+    def find_element_by_link(self, link):
         return self.find_elements_by_xpath("//a[@href='{0}']".format(link))[0]
 
     def find_elements_by_class_name(self, clsname):
@@ -99,7 +104,6 @@ class PageObject:
         select = Select(field())
         select.select_by_visible_text(text)
 
-
     def select_by_value(self, field, value):
         """
         field is a callable on our PageObject that returns a field
@@ -108,7 +112,6 @@ class PageObject:
         """
         select = Select(field())
         select.select_by_value(value)
-
 
     def click(self, link):
         """
@@ -130,8 +133,6 @@ class PageObject:
         link().click()
         return site.newpage(self)
 
-
-
     def assert_element_exists(self, testcase, element):
         """
         testcase is the testcast we're calling from
@@ -143,14 +144,15 @@ class PageObject:
         the_element = element()
         print the_element
         testcase.assertTrue(element() != None)
-
         print "leaving assert element"
 
     def page_source(self):
         return self.driver.page_source
 
+
 class SiteObject:
     pages = []
+
     def newpage(self, oldpage):
         """
         given an old page,
@@ -159,35 +161,44 @@ class SiteObject:
         """
 
         url_of_page_we_just_navigated_to = oldpage.driver.current_url
+        print "uopwjnt: ", url_of_page_we_just_navigated_to
+
+        # import pdb
+        # pdb.set_trace()
         site_class = self.__class__
 
-        #Loop through pages in site
+        # Loop through pages in site
 
         for page_class in site_class.pages:
 
-            #Construct a new page for each page class
-            newpage_candidate = page_class(oldpage.driver, self)
+            # Construct a new page for each page class
+            newpage_candidate = page_class(
+                oldpage.driver, self, base_url=oldpage.__class__.base_url)
             if newpage_candidate.__class__.url != None:
 
-                #If the url of this new page corresponds to the url
-                #of the driver of the old page return the new page object
-                #this will be the case when we have clicked a link on the old page pointing
-                #to the url of the new page
+                # If the url of this new page corresponds to the url
+                # of the driver of the old page return the new page object
+                # this will be the case when we have clicked a link on the old page pointing
+                # to the url of the new page
                 if strip_trailing_slash(newpage_candidate.full_url) == strip_trailing_slash(url_of_page_we_just_navigated_to):
                     return newpage_candidate
-        #Loop through the pages in the site again, this time looking for pattern matches
+        # Loop through the pages in the site again, this time looking for
+        # pattern matches
         for page_class in site_class.pages:
             newpage_candidate = page_class(oldpage.driver, self)
             if newpage_candidate.__class__.url_pattern:
                 print newpage_candidate.__class__.url_pattern
 
-                compiled_regexp = re.compile(newpage_candidate.__class__.url_pattern)
-                match = compiled_regexp.search(url_of_page_we_just_navigated_to)
+                compiled_regexp = re.compile(
+                    newpage_candidate.__class__.url_pattern)
+                match = compiled_regexp.search(
+                    url_of_page_we_just_navigated_to)
                 if match:
                     newpage_candidate.full_url = url_of_page_we_just_navigated_to
                     return newpage_candidate
 
-        #if we get here our tests are broken
-        #TODO make a custom exception here and raise it
+        # if we get here our tests are broken
+        # TODO make a custom exception here and raise it
 
-        raise PageNotFoundException({"message": "The requested page we and url of [{0}] could not be found within the supplied site object".format(url_of_page_we_just_navigated_to)})
+        raise PageNotFoundException({"message": "The requested page we and url of [{0}] could not be found within the supplied site object".format(
+            url_of_page_we_just_navigated_to)})
