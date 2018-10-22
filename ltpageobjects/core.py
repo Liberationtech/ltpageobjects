@@ -1,6 +1,7 @@
 # available since 2.26.0
 from selenium.webdriver.support import expected_conditions as EC
 # available since 2.4.0
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 import re
@@ -40,22 +41,35 @@ class PageObject:
         self.driver = driver
         self.site = site
 
+        self._full_url =  None
+
         # If we have not set the base_url class attribute, then use
         # value passed in to the constructor
 
         if not hasattr(self.__class__, "base_url"):
             self.__class__.base_url = base_url
 
-    def __getattr__(self, name):
-        if name == "full_url":
-            full_url = self.__class__.base_url + self.__class__.url
-            return full_url
+    # def __getattr__(self, name):
+    #     if name == "full_url":
+    #         full_url = self.__class__.base_url + self.__class__.url
+    #         return full_url
+
+    def full_url(self):
+        if self._full_url:
+            return self._full_url
+        else:
+            return self.__class__.base_url + self.__class__.url
+
+    def set_full_url(self, full_url):
+        self._full_url = full_url
+
+    
 
     def get(self):
         print "self.url: {}".format(self.url)
-        print "self.full_url: {}".format(self.full_url)
+        print "self.full_url(): {}".format(self.full_url())
         # self.driver.get(self.url)
-        self.driver.get(self.full_url)
+        self.driver.get(self.full_url())
 
     def wait(self, locator, timeout=10000):
         WebDriverWait(self.driver, timeout).until(
@@ -144,8 +158,8 @@ class PageObject:
 
         """
         link().click()
-        newpage = site.newpage(self)
-        newpage.wait(wait_for_id)
+        self.wait((By.ID, wait_for_id))
+        newpage = site.newpage(self)        
         return newpage
 
     
@@ -179,8 +193,6 @@ class SiteObject:
         url_of_page_we_just_navigated_to = oldpage.driver.current_url
         print "uopwjnt: ", url_of_page_we_just_navigated_to
 
-        # import pdb
-        # pdb.set_trace()
         site_class = self.__class__
 
         # Loop through pages in site
@@ -196,8 +208,9 @@ class SiteObject:
                 # of the driver of the old page return the new page object
                 # this will be the case when we have clicked a link on the old page pointing
                 # to the url of the new page
-                if strip_trailing_slash(newpage_candidate.full_url) == strip_trailing_slash(url_of_page_we_just_navigated_to):
+                if strip_trailing_slash(newpage_candidate.full_url()) == strip_trailing_slash(url_of_page_we_just_navigated_to):
                     return newpage_candidate
+                
         # Loop through the pages in the site again, this time looking for
         # pattern matches
         for page_class in site_class.pages:
@@ -210,7 +223,9 @@ class SiteObject:
                 match = compiled_regexp.search(
                     url_of_page_we_just_navigated_to)
                 if match:
-                    newpage_candidate.full_url = url_of_page_we_just_navigated_to
+                    #
+                    #newpage_candidate.full_url = url_of_page_we_just_navigated_to
+                    newpage_candidate.set_full_url(url_of_page_we_just_navigated_to)
                     return newpage_candidate
 
         # if we get here our tests are broken
