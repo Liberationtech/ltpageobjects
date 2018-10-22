@@ -133,6 +133,22 @@ class PageObject:
         link().click()
         return site.newpage(self)
 
+
+    def click_outbound_wait_for_id(self, link, site, wait_for_id):
+        """
+        link is a bound callable that returns an element
+
+        click a link that points to a different site and return a new page object
+        
+        do not return until <wait_for_id> is available on page
+
+        """
+        link().click()
+        newpage = site.newpage(self)
+        newpage.wait(wait_for_id)
+        return newpage
+
+    
     def assert_element_exists(self, testcase, element):
         """
         testcase is the testcast we're calling from
